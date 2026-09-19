@@ -1,0 +1,1 @@
+"""Persistance des objets métier."""

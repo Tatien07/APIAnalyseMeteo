@@ -1,0 +1,1 @@
+"""Collecte des prévisions météorologiques."""

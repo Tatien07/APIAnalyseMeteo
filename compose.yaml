@@ -1,0 +1,91 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: energy_weather
+      POSTGRES_USER: energy_weather
+      POSTGRES_PASSWORD: energy_weather
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U energy_weather -d energy_weather"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  migrate:
+    build: .
+    command: alembic upgrade head
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./alembic.ini:/app/alembic.ini:ro
+      - ./migrations:/app/migrations:ro
+
+  api:
+    build: .
+    env_file: .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8001:8000"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    env_file: .env
+    depends_on:
+      - api
+    ports:
+      - "8502:8501"
+
+  weather-collector:
+    build: .
+    command: python -m energy_weather.collectors.weather
+    env_file: .env
+    profiles: ["jobs"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  energy-collector:
+    build: .
+    command: python -m energy_weather.collectors.energy
+    env_file: .env
+    profiles: ["jobs"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  test:
+    build:
+      context: .
+      target: test
+    command:
+      - sh
+      - -c
+      - >-
+        ruff check src tests migrations dashboard &&
+        ruff format --check src tests migrations dashboard &&
+        pytest --cov=energy_weather --cov-report=term-missing
+    profiles: ["ci"]
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: jenkins/Dockerfile
+    user: root
+    profiles: ["jenkins"]
+    ports:
+      - "8081:8080"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  postgres_data:
+  jenkins_data:
