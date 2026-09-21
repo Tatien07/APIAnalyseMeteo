@@ -90,8 +90,7 @@ try:
         correlation = analysis["temperature_consumption_correlation"]
         if correlation is not None:
             correlation_label = (
-                f"Corrélation de Pearson sur {analysis['points_count']} heures : "
-                f"{correlation:.3f}"
+                f"Corrélation de Pearson sur {analysis['points_count']} heures : {correlation:.3f}"
             )
             st.info(correlation_label)
     else:

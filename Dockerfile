@@ -16,5 +16,8 @@ CMD ["pytest"]
 
 FROM base AS production
 RUN pip install --no-cache-dir .
+COPY alembic.ini ./
+COPY migrations ./migrations
 EXPOSE 8000
-CMD ["uvicorn", "energy_weather.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Cloud Run injecte PORT (8080 par défaut). En local, on conserve le port 8000.
+CMD ["sh", "-c", "exec uvicorn energy_weather.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

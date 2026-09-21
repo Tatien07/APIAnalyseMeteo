@@ -11,3 +11,9 @@ htmlcov/
 work/
 reports/
 jenkins_home/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+crash.log

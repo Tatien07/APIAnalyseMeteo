@@ -56,10 +56,18 @@ Les mêmes vérifications peuvent être exécutées sans Python local :
 docker compose --profile ci run --build --rm test
 ```
 
+Si la vérification de format échoue, appliquer le format depuis le même conteneur puis relancer :
+
+```powershell
+docker compose --profile ci run --rm test ruff format src tests migrations dashboard
+docker compose --profile ci run --rm test
+```
+
 ## Jenkins local
 
-Le `Jenkinsfile` applique successivement le lint, les tests avec couverture puis la construction des
-images API et dashboard. Démarrer Jenkins :
+Le `Jenkinsfile` applique successivement le lint, les tests avec couverture, la construction des
+images API et dashboard, puis leur publication optionnelle dans Artifact Registry. Démarrer ou
+reconstruire Jenkins :
 
 ```powershell
 docker compose --profile jenkins up --build -d jenkins
@@ -69,6 +77,97 @@ docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 L'interface est disponible sur http://localhost:8081. Le montage du socket Docker et l'utilisateur
 root sont réservés à cet environnement pédagogique local, car ils donnent à Jenkins un accès élevé
 au moteur Docker.
+
+Le pipeline propose deux paramètres :
+
+- `PUBLISH_IMAGES=false` : lint, tests et constructions uniquement ;
+- `PUBLISH_IMAGES=true` : ajoute l'authentification et le push vers Artifact Registry ;
+- `IMAGE_TAG` vide : produit automatiquement `build-NUMERO` ;
+- `IMAGE_TAG=v0.3.0` : utilise un tag de version choisi explicitement.
+
+Les Application Default Credentials Windows sont montées en lecture seule. Jenkins demande un
+jeton d'accès court avec `gcloud auth application-default print-access-token`, puis Docker l'utilise
+pour se connecter au registre. Cette approche convient au laboratoire local ; une CI distante doit
+utiliser Workload Identity Federation plutôt que les identifiants personnels ou une clé JSON.
+
+Une publication ne déploie pas directement Cloud Run. Pour promouvoir un tag validé, modifier dans
+`infrastructure/platform/terraform.tfvars` :
+
+```hcl
+api_image_tag       = "build-42"
+dashboard_image_tag = "build-42"
+```
+
+Puis examiner et appliquer le changement :
+
+```cmd
+docker compose --profile infra run --rm terraform-platform plan -out=platform.tfplan
+docker compose --profile infra run --rm terraform-platform apply platform.tfplan
+```
+
+Terraform met alors à jour l'API, le dashboard, la migration et les collecteurs vers les images
+validées sans modifier Neon ni les données.
+
+## Préparation GCP avec Terraform
+
+La première couche d'infrastructure se trouve dans `infrastructure/bootstrap`. Elle active les API,
+crée Artifact Registry et sépare les identités du déploiement, de l'API et des collecteurs. Elle ne
+crée encore ni Cloud SQL ni Cloud Run afin d'éviter des ressources payantes avant validation.
+
+```powershell
+Copy-Item infrastructure/bootstrap/terraform.tfvars.example infrastructure/bootstrap/terraform.tfvars
+docker compose --profile infra run --rm terraform init
+docker compose --profile infra run --rm terraform validate
+docker compose --profile infra run --rm terraform plan
+```
+
+Consulter `infrastructure/bootstrap/README.md` avant tout `terraform apply`.
+
+## Publication de l'image FastAPI
+
+Après l'application du bootstrap Terraform, le script Windows suivant construit l'étage
+`production` du Dockerfile et publie l'image dans Artifact Registry :
+
+```cmd
+scripts\publish-api.cmd v0.2.0
+```
+
+Le script :
+
+1. lit le projet actif dans la configuration `gcloud` ;
+2. vérifie que le dépôt `energy-weather` existe dans `europe-west1` ;
+3. configure Docker pour s'authentifier au registre ;
+4. construit l'image de production ;
+5. l'envoie sous le nom
+   `europe-west1-docker.pkg.dev/PROJECT_ID/energy-weather/api:v0.2.0`.
+
+Le tag versionné permet de savoir exactement quelle image sera déployée et d'effectuer un
+retour arrière. Sans argument, le script utilise le tag `latest`, moins adapté à un déploiement
+reproductible.
+
+Le conteneur utilise la variable `PORT` fournie par Cloud Run. En local, lorsque cette variable
+n'existe pas, il continue d'écouter sur le port `8000`.
+
+## Plateforme Neon et Cloud Run
+
+La seconde couche Terraform se trouve dans `infrastructure/platform`. Elle place l'URL d'une base
+PostgreSQL Neon dans Secret Manager, puis prépare le job de migration Alembic et le service FastAPI
+Cloud Run. Elle remplace l'ancienne variante Cloud SQL afin de rester proche de zéro euro sous les
+quotas gratuits.
+
+La même couche crée deux Cloud Run Jobs qui lancent les collecteurs Python, puis deux tâches Cloud
+Scheduler horaires. Les appels de Scheduler utilisent OAuth et une identité dédiée qui possède
+uniquement le rôle d'invocation des jobs.
+
+Le dashboard Streamlit possède sa propre image et son propre service Cloud Run. Son conteneur reçoit
+uniquement l'URL publique de FastAPI ; il n'accède jamais directement à PostgreSQL ni au secret Neon.
+
+```cmd
+scripts\publish-dashboard.cmd v0.2.0
+```
+
+Consulter `infrastructure/platform/README.md` avant toute application. Les collecteurs et leur
+planification seront ajoutés après validation de la base et de l'API dans le cloud.
 
 Si l'API est lancée hors Docker, remplacer `@db:5432` par `@localhost:5432` dans `.env`.
 Dans ce cas, il faut également publier PostgreSQL sur un port Windows libre, par exemple

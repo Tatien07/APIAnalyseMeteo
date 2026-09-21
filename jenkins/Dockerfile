@@ -11,6 +11,12 @@ RUN apt-get update \
        > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
     && apt-get install --yes --no-install-recommends docker-ce-cli docker-compose-plugin \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+       | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+       > /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && apt-get update \
+    && CLOUDSDK_SKIP_PY_COMPILATION=1 apt-get install --yes --no-install-recommends google-cloud-cli \
     && rm -rf /var/lib/apt/lists/*
 
 USER jenkins
