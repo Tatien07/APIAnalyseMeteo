@@ -73,8 +73,37 @@ services:
       - >-
         ruff check src tests migrations dashboard &&
         ruff format --check src tests migrations dashboard &&
-        pytest --cov=energy_weather --cov-report=term-missing
+        pytest -m "not integration" --cov=energy_weather --cov-report=term-missing
     profiles: ["ci"]
+
+  integration-db:
+    image: postgres:17-alpine
+    profiles: ["integration"]
+    environment:
+      POSTGRES_DB: energy_weather_test
+      POSTGRES_USER: energy_weather_test
+      POSTGRES_PASSWORD: integration-only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U energy_weather_test -d energy_weather_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  integration-test:
+    build:
+      context: .
+      target: test
+    profiles: ["integration"]
+    environment:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://energy_weather_test:integration-only@integration-db:5432/energy_weather_test
+    depends_on:
+      integration-db:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - alembic upgrade head && pytest -m integration
 
   jenkins:
     build:

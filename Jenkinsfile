@@ -27,6 +27,7 @@ pipeline {
         REPOSITORY = 'energy-weather'
         REGISTRY = 'europe-west1-docker.pkg.dev'
         TEST_IMAGE = "energy-weather-test:${BUILD_NUMBER}"
+        INTEGRATION_PROJECT = "energy-weather-it-${BUILD_NUMBER}"
     }
 
     stages {
@@ -63,8 +64,25 @@ pipeline {
                 }
                 stage('Unit tests') {
                     steps {
-                        sh 'docker run --rm "$TEST_IMAGE" pytest --cov=energy_weather --cov-report=term-missing'
+                        sh 'docker run --rm "$TEST_IMAGE" pytest -m "not integration" --cov=energy_weather --cov-report=term-missing'
                     }
+                }
+            }
+        }
+
+        stage('PostgreSQL integration tests') {
+            steps {
+                sh '''
+                    docker compose -p "$INTEGRATION_PROJECT" --profile integration \
+                      run --build --rm integration-test
+                '''
+            }
+            post {
+                always {
+                    sh '''
+                        docker compose -p "$INTEGRATION_PROJECT" --profile integration \
+                          down --volumes --remove-orphans || true
+                    '''
                 }
             }
         }

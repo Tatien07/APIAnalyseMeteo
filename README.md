@@ -56,6 +56,19 @@ Les mêmes vérifications peuvent être exécutées sans Python local :
 docker compose --profile ci run --build --rm test
 ```
 
+Les tests d'intégration utilisent une base PostgreSQL 17 éphémère distincte. Ils appliquent
+Alembic, testent la disponibilité, l'idempotence des insertions et l'analyse horaire, puis la base
+peut être entièrement supprimée :
+
+```powershell
+docker compose --profile integration run --build --rm integration-test
+docker compose --profile integration down --volumes
+```
+
+Cette base n'expose aucun port Windows et n'utilise ni Neon, ni la base PostgreSQL locale. Jenkins
+exécute automatiquement la même suite dans un projet Compose isolé par numéro de build et nettoie
+les ressources même lorsque les tests échouent.
+
 Si la vérification de format échoue, appliquer le format depuis le même conteneur puis relancer :
 
 ```powershell
