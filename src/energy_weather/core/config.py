@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "Energy Weather Monitor"
     app_env: str = "development"
     app_log_level: str = "INFO"
+    app_log_format: Literal["plain", "json"] = "plain"
     api_prefix: str = "/api/v1"
     database_url: str = Field(
         default="postgresql+psycopg://energy_weather:energy_weather@localhost:5432/energy_weather"

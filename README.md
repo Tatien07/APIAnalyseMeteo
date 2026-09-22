@@ -179,6 +179,32 @@ uniquement l'URL publique de FastAPI ; il n'accède jamais directement à Postgr
 scripts\publish-dashboard.cmd v0.2.0
 ```
 
+## Observabilité et Cloud Logging
+
+En local, `APP_LOG_FORMAT=plain` produit des lignes lisibles. Sur Cloud Run, Terraform injecte
+`APP_LOG_FORMAT=json` dans FastAPI et les collecteurs. Cloud Logging peut alors indexer notamment :
+
+- `event` : type d'événement stable ;
+- `request_id` : identifiant permettant de suivre un appel HTTP ;
+- `http_method`, `http_path` et `http_status` ;
+- `duration_ms` ;
+- `run_id`, `received` et `inserted` pour une collecte.
+
+FastAPI accepte un en-tête `X-Request-ID` fourni par le client ou en génère un, puis le renvoie dans
+la réponse. Ne journaliser que le chemin, sans la chaîne de requête, évite d'enregistrer par erreur
+des paramètres sensibles.
+
+Exemples de recherches après déploiement :
+
+```cmd
+gcloud logging read "resource.type=cloud_run_revision AND jsonPayload.event=http_request_completed" --project=energy-weather-2129519 --limit=20
+gcloud logging read "resource.type=cloud_run_job AND jsonPayload.event=weather_collection_completed" --project=energy-weather-2129519 --limit=20
+gcloud logging read "jsonPayload.request_id=IDENTIFIANT" --project=energy-weather-2129519 --limit=20
+```
+
+Les événements `weather_collection_failed`, `energy_collection_failed` et `http_request_failed`
+contiennent également l'exception avant que Cloud Run marque l'exécution en erreur.
+
 Consulter `infrastructure/platform/README.md` avant toute application. Les collecteurs et leur
 planification seront ajoutés après validation de la base et de l'API dans le cloud.
 

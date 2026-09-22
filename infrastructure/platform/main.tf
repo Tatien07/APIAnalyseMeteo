@@ -163,6 +163,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "APP_LOG_FORMAT"
+        value = "json"
+      }
+
+      env {
         name = "DATABASE_URL"
         value_source {
           secret_key_ref {
@@ -272,6 +277,11 @@ resource "google_cloud_run_v2_job" "collectors" {
         env {
           name  = "APP_ENV"
           value = "production"
+        }
+
+        env {
+          name  = "APP_LOG_FORMAT"
+          value = "json"
         }
 
         env {
