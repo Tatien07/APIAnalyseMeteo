@@ -15,6 +15,7 @@ API pédagogique d'agrégation de données météorologiques et énergétiques.
 - agrégation horaire et corrélation température-consommation ;
 - dashboard Streamlit avec indicateurs et graphiques ;
 - tests unitaires sans appel réseau réel.
+- contrôle de fraîcheur des collectes météo et énergie.
 
 ## Démarrage avec Docker
 
@@ -29,6 +30,7 @@ Ouvrir ensuite :
 - http://localhost:8001/docs
 - http://localhost:8001/api/v1/health
 - http://localhost:8001/api/v1/ready
+- http://localhost:8001/api/v1/data-freshness
 - http://localhost:8001/api/v1/measurements?location=paris&kind=temperature
 - http://localhost:8001/api/v1/measurements?location=france&kind=electricity_consumption
 - http://localhost:8001/api/v1/analytics/weather-energy?hours=24
@@ -205,8 +207,31 @@ gcloud logging read "jsonPayload.request_id=IDENTIFIANT" --project=energy-weathe
 Les événements `weather_collection_failed`, `energy_collection_failed` et `http_request_failed`
 contiennent également l'exception avant que Cloud Run marque l'exécution en erreur.
 
-Consulter `infrastructure/platform/README.md` avant toute application. Les collecteurs et leur
-planification seront ajoutés après validation de la base et de l'API dans le cloud.
+## Fraîcheur des données
+
+L'endpoint `/api/v1/data-freshness` vérifie la date de dernière collecte, et non la date de la
+mesure : les prévisions météo peuvent en effet contenir des observations futures. Par défaut, une
+source est `fresh` si son collecteur a écrit dans les trois dernières heures. Elle devient `stale`
+au-delà de ce seuil et `missing` si aucune donnée n'existe. Le statut global est alors `degraded`.
+
+Le seuil peut être ajusté pour un diagnostic ponctuel, par exemple :
+
+```text
+/api/v1/data-freshness?threshold_minutes=240
+```
+
+Ce contrôle métier complète `/health` (processus FastAPI actif) et `/ready` (base accessible).
+
+### Livraison de la version 0.5.0
+
+Cette version ajoute le contrôle de fraîcheur et son affichage dans Streamlit. Après avoir envoyé
+le code sur GitHub, lancer Jenkins avec `PUBLISH_IMAGES=true` et `IMAGE_TAG=v0.5.0`. Une fois les
+deux images publiées, examiner puis appliquer la couche Terraform `platform`. Cloud Run crée de
+nouvelles révisions avec les images `v0.5.0`, tandis que les versions précédentes restent
+disponibles dans Artifact Registry pour un éventuel retour arrière.
+
+Consulter `infrastructure/platform/README.md` avant toute application ou modification de la
+planification des collecteurs.
 
 Si l'API est lancée hors Docker, remplacer `@db:5432` par `@localhost:5432` dans `.env`.
 Dans ce cas, il faut également publier PostgreSQL sur un port Windows libre, par exemple

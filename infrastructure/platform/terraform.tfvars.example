@@ -1,8 +1,8 @@
 project_id             = "mon-projet-gcp"
 region                 = "europe-west1"
 artifact_repository_id = "energy-weather"
-api_image_tag           = "v0.2.0"
-dashboard_image_tag     = "v0.2.0"
+api_image_tag           = "v0.5.0"
+dashboard_image_tag     = "v0.5.0"
 database_url            = "postgresql+psycopg://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 allow_unauthenticated   = true
 schedulers_paused       = true

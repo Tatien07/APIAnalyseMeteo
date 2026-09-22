@@ -61,6 +61,18 @@ class MeasurementRepository:
         result = await self.session.scalars(statement)
         return list(result)
 
+    async def latest_collected_at(
+        self,
+        *,
+        kind: MeasurementKind,
+        location: str,
+    ) -> datetime | None:
+        statement = select(func.max(Measurement.collected_at)).where(
+            Measurement.kind == kind,
+            Measurement.location == location,
+        )
+        return await self.session.scalar(statement)
+
     async def hourly_temperature_consumption(
         self,
         *,

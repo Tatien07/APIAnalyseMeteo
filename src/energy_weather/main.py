@@ -11,7 +11,7 @@ def create_app() -> FastAPI:
     configure_logging(settings.app_log_level, settings.app_log_format)
     application = FastAPI(
         title=settings.app_name,
-        version="0.2.0",
+        version="0.5.0",
         description="API d'agrégation de données météo et énergie.",
     )
     register_observability_middleware(application)

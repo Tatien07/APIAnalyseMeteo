@@ -99,3 +99,39 @@ async def test_analytics_reads_hourly_values_from_postgres(
     payload = response.json()
     assert payload["points_count"] == 2
     assert payload["temperature_consumption_correlation"] == 1.0
+
+
+async def test_data_freshness_reports_recent_collections(
+    api_client: httpx.AsyncClient,
+) -> None:
+    now = datetime.now(UTC)
+    measurements = [
+        MeasurementInput(
+            source="integration-weather",
+            location="paris",
+            kind=MeasurementKind.TEMPERATURE,
+            value=Decimal("18"),
+            unit="°C",
+            observed_at=now,
+            collected_at=now,
+        ),
+        MeasurementInput(
+            source="integration-energy",
+            location="france",
+            kind=MeasurementKind.ELECTRICITY_CONSUMPTION,
+            value=Decimal("42000"),
+            unit="MW",
+            observed_at=now,
+            collected_at=now,
+        ),
+    ]
+    async with SessionFactory() as session:
+        await MeasurementRepository(session).add_many(measurements)
+
+    response = await api_client.get("/api/v1/data-freshness")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "healthy"
+    assert payload["weather"]["status"] == "fresh"
+    assert payload["energy"]["status"] == "fresh"

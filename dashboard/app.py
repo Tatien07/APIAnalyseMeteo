@@ -38,6 +38,17 @@ hours = st.sidebar.slider("Période analysée (heures)", min_value=6, max_value=
 st.sidebar.caption("Actualisez après avoir relancé les collecteurs.")
 
 try:
+    freshness = api_get("/data-freshness")
+    if freshness["status"] == "healthy":
+        st.success("Collectes météo et énergie à jour")
+    else:
+        stale_sources = [
+            label
+            for label, key in [("météo", "weather"), ("énergie", "energy")]
+            if freshness[key]["status"] != "fresh"
+        ]
+        st.warning(f"Données à vérifier : {', '.join(stale_sources)}")
+
     temperature = latest_measurement("temperature", "paris")
     consumption = latest_measurement("electricity_consumption", "france")
     carbon = latest_measurement("carbon_intensity", "france")
