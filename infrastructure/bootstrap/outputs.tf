@@ -5,7 +5,7 @@ output "artifact_registry_hostname" {
 
 output "artifact_registry_repository" {
   description = "Chemin complet du dépôt Docker."
-  value       = join("/", [
+  value = join("/", [
     "${var.region}-docker.pkg.dev",
     var.project_id,
     var.artifact_repository_id,

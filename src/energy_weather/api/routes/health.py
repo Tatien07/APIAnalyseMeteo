@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -9,7 +9,7 @@ from energy_weather.db.session import get_db_session
 from energy_weather.models.measurement import MeasurementKind
 from energy_weather.repositories.measurements import MeasurementRepository
 from energy_weather.schemas.health import DataFreshnessResponse, HealthResponse, ReadinessResponse
-from energy_weather.services.freshness import evaluate_freshness
+from energy_weather.services.freshness import build_freshness_response
 
 router = APIRouter()
 DatabaseSession = Annotated[AsyncSession, Depends(get_db_session)]
@@ -40,14 +40,9 @@ async def data_freshness(
         kind=MeasurementKind.ELECTRICITY_CONSUMPTION,
         location="france",
     )
-    now = datetime.now(UTC)
-    threshold = timedelta(minutes=threshold_minutes)
-    weather = evaluate_freshness(weather_collected_at, now=now, threshold=threshold)
-    energy = evaluate_freshness(energy_collected_at, now=now, threshold=threshold)
-    status = "healthy" if weather.status == energy.status == "fresh" else "degraded"
-    return DataFreshnessResponse(
-        status=status,
+    return build_freshness_response(
+        weather_collected_at,
+        energy_collected_at,
+        now=datetime.now(UTC),
         threshold_minutes=threshold_minutes,
-        weather=weather,
-        energy=energy,
     )

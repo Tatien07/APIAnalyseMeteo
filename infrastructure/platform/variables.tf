@@ -57,3 +57,28 @@ variable "schedulers_paused" {
   type        = bool
   default     = true
 }
+
+variable "alert_email" {
+  description = "Adresse facultative qui reçoit les alertes Cloud Monitoring."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.alert_email == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
+    error_message = "alert_email doit être vide ou contenir une adresse e-mail valide."
+  }
+}
+
+variable "freshness_threshold_minutes" {
+  description = "Âge maximal des données avant que le contrôle planifié échoue."
+  type        = number
+  default     = 180
+
+  validation {
+    condition = (
+      var.freshness_threshold_minutes >= 15 &&
+      var.freshness_threshold_minutes <= 1440
+    )
+    error_message = "freshness_threshold_minutes doit être compris entre 15 et 1440."
+  }
+}

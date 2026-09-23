@@ -32,3 +32,18 @@ output "scheduler_job_names" {
   description = "Tâches Cloud Scheduler qui déclenchent les collecteurs."
   value       = { for key, job in google_cloud_scheduler_job.collectors : key => job.name }
 }
+
+output "application_failure_metric" {
+  description = "Type de métrique Cloud Monitoring alimenté par les journaux d'échec."
+  value       = "logging.googleapis.com/user/${google_logging_metric.application_failures.name}"
+}
+
+output "application_failure_alert_policy" {
+  description = "Identifiant de la politique d'alerte sur les échecs applicatifs."
+  value       = google_monitoring_alert_policy.application_failure.name
+}
+
+output "freshness_check_job_name" {
+  description = "Job Cloud Run qui vérifie l'âge des dernières collectes."
+  value       = google_cloud_run_v2_job.freshness_check.name
+}

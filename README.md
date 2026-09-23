@@ -23,6 +23,7 @@ API pédagogique d'agrégation de données météorologiques et énergétiques.
 docker compose up --build -d
 docker compose --profile jobs run --rm weather-collector
 docker compose --profile jobs run --rm energy-collector
+docker compose --profile jobs run --rm freshness-check
 ```
 
 Ouvrir ensuite :
@@ -63,13 +64,15 @@ Alembic, testent la disponibilité, l'idempotence des insertions et l'analyse ho
 peut être entièrement supprimée :
 
 ```powershell
-docker compose --profile integration run --build --rm integration-test
-docker compose --profile integration down --volumes
+docker compose -p energy-weather-integration --profile integration run --build --rm integration-test
+docker compose -p energy-weather-integration --profile integration down --volumes --remove-orphans
 ```
 
-Cette base n'expose aucun port Windows et n'utilise ni Neon, ni la base PostgreSQL locale. Jenkins
-exécute automatiquement la même suite dans un projet Compose isolé par numéro de build et nettoie
-les ressources même lorsque les tests échouent.
+L'option `-p energy-weather-integration` place les conteneurs, le réseau et les volumes de test dans
+un projet Compose distinct. Le nettoyage ne peut donc pas supprimer la base locale utilisée par
+l'API et le dashboard. Cette base de test n'expose aucun port Windows et n'utilise ni Neon, ni la
+base PostgreSQL locale. Jenkins applique déjà cette isolation avec un nom unique par build et
+nettoie les ressources même lorsque les tests échouent.
 
 Si la vérification de format échoue, appliquer le format depuis le même conteneur puis relancer :
 
@@ -206,6 +209,17 @@ gcloud logging read "jsonPayload.request_id=IDENTIFIANT" --project=energy-weathe
 
 Les événements `weather_collection_failed`, `energy_collection_failed` et `http_request_failed`
 contiennent également l'exception avant que Cloud Run marque l'exécution en erreur.
+
+Terraform crée également une métrique `energy_weather/application_failures` et une politique
+d'alerte Cloud Monitoring. Le canal e-mail est facultatif et se configure avec `alert_email` dans
+le fichier local `infrastructure/platform/terraform.tfvars`.
+
+Un job Cloud Run indépendant vérifie aussi la fraîcheur chaque heure. Cette vérification détecte
+le cas où un collecteur ne démarre plus du tout et ne peut donc pas produire son propre journal
+d'erreur.
+
+La version `v0.6.0` ajoute ce job planifié. Elle doit être publiée par Jenkins avant d'appliquer la
+configuration Terraform qui crée `energy-weather-check-freshness`.
 
 ## Fraîcheur des données
 

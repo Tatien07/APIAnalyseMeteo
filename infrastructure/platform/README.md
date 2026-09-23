@@ -9,6 +9,8 @@ Cette deuxième couche déploie l'application après le bootstrap :
 - deux jobs Cloud Run pour les collectes météo et énergie ;
 - deux déclencheurs Cloud Scheduler authentifiés.
 - un service Cloud Run public pour le dashboard Streamlit.
+- une métrique Cloud Logging et une alerte Cloud Monitoring sur les échecs applicatifs.
+- un contrôle horaire qui détecte les données absentes ou trop anciennes.
 
 ## Coût et choix pédagogiques
 
@@ -20,6 +22,28 @@ Cette variante ne crée pas Cloud SQL. Pour une faible utilisation restant dans 
 
 Le plan gratuit Neon peut mettre la base en veille et provoquer un premier accès plus lent. Cette
 architecture convient à l'apprentissage, pas à une production critique.
+
+## Alertes applicatives
+
+La plateforme compte les événements structurés `weather_collection_failed`,
+`energy_collection_failed` et `http_request_failed`. Un événement ouvre un incident Cloud
+Monitoring. Les notifications sont limitées à une par heure afin d'éviter une rafale de messages.
+
+Sans configuration supplémentaire, les incidents restent visibles dans Cloud Monitoring. Pour
+recevoir aussi un e-mail, ajouter dans le fichier local `terraform.tfvars` :
+
+```hcl
+alert_email = "votre-adresse@example.com"
+```
+
+Après `terraform apply`, Google envoie un message de validation à cette adresse. Le canal ne peut
+envoyer des alertes qu'après confirmation. L'adresse est une configuration locale et ne doit pas
+être ajoutée au fichier d'exemple versionné.
+
+Le job `energy-weather-check-freshness` s'exécute chaque heure à la minute 40, après les collectes
+météo (`:05`) et énergie (`:20`). Il compare `collected_at` à l'heure actuelle. Au-delà de 180
+minutes, ou si une source est absente, il émet `data_freshness_failed` et termine en erreur. Le
+seuil se configure avec `freshness_threshold_minutes`.
 
 ## Prérequis
 

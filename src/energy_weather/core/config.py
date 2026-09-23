@@ -25,6 +25,7 @@ class Settings(BaseSettings):
         "eco2mix-national-tr/records"
     )
     energy_record_limit: int = Field(default=96, ge=1, le=100)
+    freshness_threshold_minutes: int = Field(default=180, ge=15, le=1440)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

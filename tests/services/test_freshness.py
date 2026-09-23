@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from energy_weather.services.freshness import evaluate_freshness
+from energy_weather.services.freshness import build_freshness_response, evaluate_freshness
 
 
 def test_missing_data_is_reported() -> None:
@@ -36,3 +36,17 @@ def test_old_data_is_stale() -> None:
 
     assert result.status == "stale"
     assert result.age_minutes == 240.0
+
+
+def test_global_status_is_degraded_when_one_source_is_stale() -> None:
+    now = datetime.now(UTC)
+    result = build_freshness_response(
+        now - timedelta(minutes=30),
+        now - timedelta(hours=4),
+        now=now,
+        threshold_minutes=180,
+    )
+
+    assert result.status == "degraded"
+    assert result.weather.status == "fresh"
+    assert result.energy.status == "stale"
