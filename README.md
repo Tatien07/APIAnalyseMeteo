@@ -2,6 +2,11 @@
 
 API pédagogique d'agrégation de données météorologiques et énergétiques.
 
+Documentation complémentaire :
+
+- [architecture](docs/ARCHITECTURE.md) ;
+- [exploitation, validation et retour arrière](docs/OPERATIONS.md).
+
 ## Fonctionnalités actuelles
 
 - API FastAPI et documentation OpenAPI ;
@@ -58,6 +63,10 @@ Les mêmes vérifications peuvent être exécutées sans Python local :
 ```powershell
 docker compose --profile ci run --build --rm test
 ```
+
+Après un déploiement cloud, exécuter le test de fumée décrit dans
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md). Il vérifie l'API, Neon, la fraîcheur des données,
+l'analyse et le dashboard avec un seul script PowerShell.
 
 Les tests d'intégration utilisent une base PostgreSQL 17 éphémère distincte. Ils appliquent
 Alembic, testent la disponibilité, l'idempotence des insertions et l'analyse horaire, puis la base
