@@ -1,0 +1,3 @@
+project_id        = "energy-weather-2129519"
+region            = "europe-west1"
+state_bucket_name = "energy-weather-2129519-terraform-state"

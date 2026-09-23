@@ -139,6 +139,16 @@ services:
       - .:/workspace
       - ${APPDATA}/gcloud:/gcloud:ro
 
+  terraform-state:
+    image: hashicorp/terraform:1.12.2
+    profiles: ["infra"]
+    working_dir: /workspace/infrastructure/state-bootstrap
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
+    volumes:
+      - .:/workspace
+      - ${APPDATA}/gcloud:/gcloud:ro
+
   terraform-platform:
     image: hashicorp/terraform:1.12.2
     profiles: ["infra"]

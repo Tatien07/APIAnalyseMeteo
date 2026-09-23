@@ -6,6 +6,7 @@ Documentation complémentaire :
 
 - [architecture](docs/ARCHITECTURE.md) ;
 - [exploitation, validation et retour arrière](docs/OPERATIONS.md).
+- [stockage distant de l'état Terraform](infrastructure/state-bootstrap/README.md).
 
 ## Fonctionnalités actuelles
 

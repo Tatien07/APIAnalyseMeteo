@@ -28,7 +28,8 @@ Terraform ────────> Cloud Run, Scheduler, secrets, IAM et alerte
 - **Jenkins** : bloque une livraison si le format, les tests unitaires ou les tests PostgreSQL
   échouent, puis publie des images immuables.
 - **Terraform** : décrit l'état voulu de l'infrastructure et rend les changements examinables avant
-  application.
+  application. Ses états `bootstrap` et `platform` sont séparés dans un bucket GCS privé et
+  versionné qui prend en charge le verrouillage.
 
 ## Flux d'une mesure
 
