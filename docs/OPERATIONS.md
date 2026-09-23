@@ -17,6 +17,15 @@ Le script vérifie successivement le processus FastAPI, PostgreSQL, la fraîcheu
 sur 24 heures et le service Streamlit. Un code de sortie non nul signifie que la livraison ne doit
 pas être considérée comme validée.
 
+Le même contrôle peut être lancé dans Jenkins après le déploiement avec :
+
+- `RUN_CLOUD_SMOKE_TEST=true` ;
+- `CLOUD_API_URL=<URL_FASTAPI>` ;
+- `CLOUD_DASHBOARD_URL=<URL_STREAMLIT>`.
+
+Cette exécution reste optionnelle afin que les builds locaux et les pull requests n'appellent pas
+les services cloud.
+
 ## Diagnostic d'une alerte
 
 1. Identifier l'événement et le `run_id` dans Cloud Logging.

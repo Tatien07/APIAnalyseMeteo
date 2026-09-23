@@ -19,6 +19,21 @@ pipeline {
             defaultValue: '',
             description: 'Tag optionnel. Vide = build-NUMERO.'
         )
+        booleanParam(
+            name: 'RUN_CLOUD_SMOKE_TEST',
+            defaultValue: false,
+            description: 'Vérifier une version déjà déployée dans Cloud Run.'
+        )
+        string(
+            name: 'CLOUD_API_URL',
+            defaultValue: '',
+            description: 'URL Cloud Run de FastAPI, requise pour le test cloud.'
+        )
+        string(
+            name: 'CLOUD_DASHBOARD_URL',
+            defaultValue: '',
+            description: 'URL Cloud Run de Streamlit, requise pour le test cloud.'
+        )
     }
 
     environment {
@@ -39,6 +54,15 @@ pipeline {
 
                     if (!(env.RELEASE_TAG ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/)) {
                         error('IMAGE_TAG invalide. Utilisez uniquement lettres, chiffres, _, . et -.')
+                    }
+
+                    if (params.RUN_CLOUD_SMOKE_TEST) {
+                        if (!(params.CLOUD_API_URL ==~ /^https:\/\/[^\s]+$/)) {
+                            error('CLOUD_API_URL doit contenir une URL HTTPS valide.')
+                        }
+                        if (!(params.CLOUD_DASHBOARD_URL ==~ /^https:\/\/[^\s]+$/)) {
+                            error('CLOUD_DASHBOARD_URL doit contenir une URL HTTPS valide.')
+                        }
                     }
 
                     env.API_IMAGE = "${env.REGISTRY}/${env.PROJECT_ID}/${env.REPOSITORY}/api:${env.RELEASE_TAG}"
@@ -133,6 +157,20 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+
+        stage('Cloud smoke test') {
+            when {
+                expression { params.RUN_CLOUD_SMOKE_TEST }
+            }
+            steps {
+                sh '''
+                    docker run --rm "$TEST_IMAGE" \
+                      python -m energy_weather.smoke \
+                      --api-url "$CLOUD_API_URL" \
+                      --dashboard-url "$CLOUD_DASHBOARD_URL"
+                '''
             }
         }
     }

@@ -105,12 +105,18 @@ L'interface est disponible sur http://localhost:8081. Le montage du socket Docke
 root sont réservés à cet environnement pédagogique local, car ils donnent à Jenkins un accès élevé
 au moteur Docker.
 
-Le pipeline propose deux paramètres :
+Le pipeline propose plusieurs paramètres :
 
 - `PUBLISH_IMAGES=false` : lint, tests et constructions uniquement ;
 - `PUBLISH_IMAGES=true` : ajoute l'authentification et le push vers Artifact Registry ;
 - `IMAGE_TAG` vide : produit automatiquement `build-NUMERO` ;
 - `IMAGE_TAG=v0.3.0` : utilise un tag de version choisi explicitement.
+- `RUN_CLOUD_SMOKE_TEST=true` : contrôle une version déjà déployée ;
+- `CLOUD_API_URL` et `CLOUD_DASHBOARD_URL` : URL HTTPS utilisées par ce contrôle.
+
+Le test cloud est volontairement indépendant de la publication : Terraform reste responsable du
+déploiement. Après un `terraform apply`, relancer Jenkins avec `RUN_CLOUD_SMOKE_TEST=true` et les
+deux URL Cloud Run. Le build échoue si FastAPI, Neon, la fraîcheur, l'analyse ou Streamlit échoue.
 
 Les Application Default Credentials Windows sont montées en lecture seule. Jenkins demande un
 jeton d'accès court avec `gcloud auth application-default print-access-token`, puis Docker l'utilise
