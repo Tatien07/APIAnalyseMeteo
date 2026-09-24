@@ -2,6 +2,9 @@
 
 API pédagogique d'agrégation de données météorologiques et énergétiques.
 
+SQLAlchemy est installé avec son extra `asyncio`, qui fournit notamment `greenlet`, nécessaire au
+moteur PostgreSQL asynchrone pendant l'exécution et les tests d'intégration.
+
 Documentation complémentaire :
 
 - [architecture](docs/ARCHITECTURE.md) ;
