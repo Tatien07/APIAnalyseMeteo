@@ -24,6 +24,7 @@ WEATHER_LOCATIONS = {
 }
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def api_get(path: str, params: dict | None = None) -> object:
     response = httpx.get(f"{API_BASE_URL}{path}", params=params, timeout=20)
     response.raise_for_status()
@@ -58,7 +59,10 @@ compared_weather_labels = st.sidebar.multiselect(
     options=list(WEATHER_LOCATIONS),
     default=list(WEATHER_LOCATIONS),
 )
-st.sidebar.caption("Actualisez après avoir relancé les collecteurs.")
+if st.sidebar.button("Actualiser maintenant", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
+st.sidebar.caption("Les réponses de l'API sont conservées pendant 5 minutes.")
 
 try:
     now = datetime.now(UTC)
@@ -194,6 +198,16 @@ try:
         st.caption("À gauche de la ligne : historique. À droite : prévisions Open-Meteo.")
         st.dataframe(
             pd.DataFrame(current_weather_rows).set_index("Ville"),
+            use_container_width=True,
+        )
+        export_frame = comparison_frame.rename(
+            columns={"Date": "observed_at", "Ville": "city", "Température (°C)": "temperature_c"}
+        )
+        st.download_button(
+            "Télécharger la comparaison en CSV",
+            data=export_frame.to_csv(index=False).encode("utf-8"),
+            file_name=f"weather-comparison-{now:%Y%m%d-%H%M}.csv",
+            mime="text/csv",
             use_container_width=True,
         )
     else:
