@@ -16,6 +16,10 @@ DatabaseSession = Annotated[AsyncSession, Depends(get_db_session)]
 async def weather_energy_analysis(
     session: DatabaseSession,
     hours: Annotated[int, Query(ge=2, le=168)] = 24,
+    weather_location: Annotated[str, Query(min_length=1, max_length=100)] = "paris",
 ) -> EnergyWeatherAnalysis:
-    rows = await MeasurementRepository(session).hourly_temperature_consumption(hours=hours)
+    rows = await MeasurementRepository(session).hourly_temperature_consumption(
+        hours=hours,
+        weather_location=weather_location.lower(),
+    )
     return build_energy_weather_analysis(rows, hours_requested=hours)

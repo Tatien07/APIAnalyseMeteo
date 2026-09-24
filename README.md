@@ -15,7 +15,7 @@ Documentation complémentaire :
 
 - API FastAPI et documentation OpenAPI ;
 - PostgreSQL avec SQLAlchemy asynchrone et migrations Alembic ;
-- collecte des prévisions horaires Open-Meteo pour Paris ;
+- collecte des prévisions horaires Open-Meteo pour Paris, Lyon, Marseille, Lille et Toulouse ;
 - collecte des données électriques nationales RTE éCO2mix ;
 - température, humidité, vent, couverture nuageuse et rayonnement solaire ;
 - consommation, intensité carbone et production par filière ;
@@ -23,6 +23,7 @@ Documentation complémentaire :
 - consultation filtrée des mesures ;
 - agrégation horaire et corrélation température-consommation ;
 - dashboard Streamlit avec indicateurs et graphiques ;
+- sélection de la ville météo utilisée dans les graphiques et la corrélation ;
 - tests unitaires sans appel réseau réel.
 - contrôle de fraîcheur des collectes météo et énergie.
 

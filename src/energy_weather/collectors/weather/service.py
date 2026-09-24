@@ -11,12 +11,17 @@ async def collect_weather(
     client: OpenMeteoClient | None = None,
 ) -> tuple[int, int]:
     client = client or OpenMeteoClient(settings.weather_api_url)
-    response = await client.fetch(
-        latitude=settings.weather_latitude,
-        longitude=settings.weather_longitude,
-        forecast_hours=settings.weather_forecast_hours,
-        past_hours=settings.weather_past_hours,
-    )
-    measurements = parse_weather_response(response, location=settings.weather_location_name)
-    inserted = await MeasurementRepository(session).add_many(measurements)
-    return len(measurements), inserted
+    repository = MeasurementRepository(session)
+    received = 0
+    inserted = 0
+    for location in settings.weather_locations:
+        response = await client.fetch(
+            latitude=location.latitude,
+            longitude=location.longitude,
+            forecast_hours=settings.weather_forecast_hours,
+            past_hours=settings.weather_past_hours,
+        )
+        measurements = parse_weather_response(response, location=location.name)
+        received += len(measurements)
+        inserted += await repository.add_many(measurements)
+    return received, inserted

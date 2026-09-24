@@ -100,6 +100,13 @@ async def test_analytics_reads_hourly_values_from_postgres(
     assert payload["points_count"] == 2
     assert payload["temperature_consumption_correlation"] == 1.0
 
+    lyon_response = await api_client.get(
+        "/api/v1/analytics/weather-energy",
+        params={"hours": 6, "weather_location": "lyon"},
+    )
+    assert lyon_response.status_code == 200
+    assert lyon_response.json()["points_count"] == 0
+
 
 async def test_data_freshness_reports_recent_collections(
     api_client: httpx.AsyncClient,

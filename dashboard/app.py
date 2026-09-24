@@ -14,6 +14,13 @@ PRODUCTION_KINDS = {
     "Gaz": "gas_production",
     "Bioénergies": "bioenergy_production",
 }
+WEATHER_LOCATIONS = {
+    "Paris": "paris",
+    "Lyon": "lyon",
+    "Marseille": "marseille",
+    "Lille": "lille",
+    "Toulouse": "toulouse",
+}
 
 
 def api_get(path: str, params: dict | None = None) -> object:
@@ -32,9 +39,11 @@ def latest_measurement(kind: str, location: str) -> dict | None:
 
 st.set_page_config(page_title="Energy Weather Monitor", page_icon="⚡", layout="wide")
 st.title("⚡ Energy Weather Monitor")
-st.caption("Météo à Paris et système électrique français — données en UTC")
+st.caption("Météo dans cinq villes et système électrique français — données en UTC")
 
 hours = st.sidebar.slider("Période analysée (heures)", min_value=6, max_value=168, value=24)
+weather_label = st.sidebar.selectbox("Ville météo", options=list(WEATHER_LOCATIONS))
+weather_location = WEATHER_LOCATIONS[weather_label]
 st.sidebar.caption("Actualisez après avoir relancé les collecteurs.")
 
 try:
@@ -49,13 +58,13 @@ try:
         ]
         st.warning(f"Données à vérifier : {', '.join(stale_sources)}")
 
-    temperature = latest_measurement("temperature", "paris")
+    temperature = latest_measurement("temperature", weather_location)
     consumption = latest_measurement("electricity_consumption", "france")
     carbon = latest_measurement("carbon_intensity", "france")
 
     metric_columns = st.columns(3)
     metric_columns[0].metric(
-        "Température Paris",
+        f"Température {weather_label}",
         f"{float(temperature['value']):.1f} °C" if temperature else "Indisponible",
     )
     metric_columns[1].metric(
@@ -67,7 +76,10 @@ try:
         f"{float(carbon['value']):.0f} gCO₂/kWh" if carbon else "Indisponible",
     )
 
-    analysis = api_get("/analytics/weather-energy", {"hours": hours})
+    analysis = api_get(
+        "/analytics/weather-energy",
+        {"hours": hours, "weather_location": weather_location},
+    )
     points = analysis["points"]
     st.subheader("Température et consommation horaire")
     if points:
