@@ -110,10 +110,17 @@ Le pipeline propose plusieurs paramètres :
 
 - `PUBLISH_IMAGES=false` : lint, tests et constructions uniquement ;
 - `PUBLISH_IMAGES=true` : ajoute l'authentification et le push vers Artifact Registry ;
+- `DEPLOY_TO_GCP=true` : affiche un plan Terraform, attend une validation puis déploie ;
 - `IMAGE_TAG` vide : produit automatiquement `build-NUMERO` ;
 - `IMAGE_TAG=v0.3.0` : utilise un tag de version choisi explicitement.
 - `RUN_CLOUD_SMOKE_TEST=true` : contrôle une version déjà déployée ;
 - `CLOUD_API_URL` et `CLOUD_DASHBOARD_URL` : URL HTTPS utilisées par ce contrôle.
+
+Pour une livraison complète, utiliser un tag explicite puis cocher `PUBLISH_IMAGES` et
+`DEPLOY_TO_GCP`. Jenkins publie les images, affiche le plan et attend un clic sur **Déployer** avant
+toute modification GCP. Après l'application, il récupère les URL Terraform et exécute le test de
+fumée. Le fichier local `infrastructure/platform/terraform.tfvars` est monté en lecture seule dans
+Jenkins et reste exclu de Git.
 
 Le test cloud est volontairement indépendant de la publication : Terraform reste responsable du
 déploiement. Après un `terraform apply`, relancer Jenkins avec `RUN_CLOUD_SMOKE_TEST=true` et les

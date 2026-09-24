@@ -14,6 +14,11 @@ pipeline {
             defaultValue: false,
             description: 'Publier les images validées dans Artifact Registry.'
         )
+        booleanParam(
+            name: 'DEPLOY_TO_GCP',
+            defaultValue: false,
+            description: 'Appliquer Terraform après validation humaine.'
+        )
         string(
             name: 'IMAGE_TAG',
             defaultValue: '',
@@ -54,6 +59,9 @@ pipeline {
 
                     if (!(env.RELEASE_TAG ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,127}/)) {
                         error('IMAGE_TAG invalide. Utilisez uniquement lettres, chiffres, _, . et -.')
+                    }
+                    if (params.DEPLOY_TO_GCP && !params.PUBLISH_IMAGES) {
+                        error('DEPLOY_TO_GCP exige PUBLISH_IMAGES=true.')
                     }
 
                     if (params.RUN_CLOUD_SMOKE_TEST) {
@@ -170,6 +178,49 @@ pipeline {
                       python -m energy_weather.smoke \
                       --api-url "$CLOUD_API_URL" \
                       --dashboard-url "$CLOUD_DASHBOARD_URL"
+                '''
+            }
+        }
+
+        stage('Terraform plan') {
+            when { expression { params.DEPLOY_TO_GCP } }
+            steps {
+                sh '''
+                    terraform -chdir=infrastructure/platform init -input=false
+                    terraform -chdir=infrastructure/platform plan -input=false \
+                      -var-file=/run/secrets/platform.tfvars \
+                      -var="api_image_tag=$RELEASE_TAG" \
+                      -var="dashboard_image_tag=$RELEASE_TAG" \
+                      -out=jenkins.tfplan
+                    terraform -chdir=infrastructure/platform show -no-color jenkins.tfplan
+                '''
+            }
+        }
+
+        stage('Approve production deployment') {
+            when { expression { params.DEPLOY_TO_GCP } }
+            input {
+                message "Appliquer ce plan Terraform dans GCP ?"
+                ok "Déployer"
+            }
+            steps { echo "Déploiement de ${env.RELEASE_TAG} approuvé." }
+        }
+
+        stage('Terraform apply') {
+            when { expression { params.DEPLOY_TO_GCP } }
+            steps {
+                sh 'terraform -chdir=infrastructure/platform apply -input=false jenkins.tfplan'
+            }
+        }
+
+        stage('Post-deployment smoke test') {
+            when { expression { params.DEPLOY_TO_GCP } }
+            steps {
+                sh '''
+                    API_URL=$(terraform -chdir=infrastructure/platform output -raw api_url)
+                    DASHBOARD_URL=$(terraform -chdir=infrastructure/platform output -raw dashboard_url)
+                    docker run --rm "$TEST_IMAGE" python -m energy_weather.smoke \
+                      --api-url "$API_URL" --dashboard-url "$DASHBOARD_URL"
                 '''
             }
         }

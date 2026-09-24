@@ -128,6 +128,7 @@ services:
       - jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
       - ${APPDATA}/gcloud:/gcloud:ro
+      - ./infrastructure/platform/terraform.tfvars:/run/secrets/platform.tfvars:ro
 
   terraform:
     image: hashicorp/terraform:1.12.2
