@@ -24,6 +24,7 @@ Documentation complémentaire :
 - agrégation horaire et corrélation température-consommation ;
 - dashboard Streamlit avec indicateurs et graphiques ;
 - sélection de la ville météo utilisée dans les graphiques et la corrélation ;
+- comparaison simultanée des villes avec historique, prévisions et synthèse météo ;
 - tests unitaires sans appel réseau réel.
 - contrôle de fraîcheur des collectes météo et énergie.
 

@@ -1,4 +1,5 @@
 import os
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pandas as pd
@@ -29,10 +30,18 @@ def api_get(path: str, params: dict | None = None) -> object:
     return response.json()
 
 
-def latest_measurement(kind: str, location: str) -> dict | None:
+def latest_measurement(
+    kind: str,
+    location: str,
+    *,
+    observed_to: datetime | None = None,
+) -> dict | None:
+    params = {"kind": kind, "location": location, "limit": 1}
+    if observed_to is not None:
+        params["observed_to"] = observed_to.isoformat()
     data = api_get(
         "/measurements",
-        {"kind": kind, "location": location, "limit": 1},
+        params,
     )
     return data[0] if isinstance(data, list) and data else None
 
@@ -44,9 +53,15 @@ st.caption("Météo dans cinq villes et système électrique français — donn�
 hours = st.sidebar.slider("Période analysée (heures)", min_value=6, max_value=168, value=24)
 weather_label = st.sidebar.selectbox("Ville météo", options=list(WEATHER_LOCATIONS))
 weather_location = WEATHER_LOCATIONS[weather_label]
+compared_weather_labels = st.sidebar.multiselect(
+    "Villes à comparer",
+    options=list(WEATHER_LOCATIONS),
+    default=list(WEATHER_LOCATIONS),
+)
 st.sidebar.caption("Actualisez après avoir relancé les collecteurs.")
 
 try:
+    now = datetime.now(UTC)
     freshness = api_get("/data-freshness")
     if freshness["status"] == "healthy":
         st.success("Collectes météo et énergie à jour")
@@ -58,7 +73,7 @@ try:
         ]
         st.warning(f"Données à vérifier : {', '.join(stale_sources)}")
 
-    temperature = latest_measurement("temperature", weather_location)
+    temperature = latest_measurement("temperature", weather_location, observed_to=now)
     consumption = latest_measurement("electricity_consumption", "france")
     carbon = latest_measurement("carbon_intensity", "france")
 
@@ -118,6 +133,71 @@ try:
             st.info(correlation_label)
     else:
         st.warning("Aucune heure commune. Relancez d'abord les deux collecteurs.")
+
+    st.subheader("Comparaison météo des villes")
+    comparison_rows = []
+    current_weather_rows = []
+    for city_label in compared_weather_labels:
+        city_location = WEATHER_LOCATIONS[city_label]
+        city_measurements = api_get(
+            "/measurements",
+            {
+                "location": city_location,
+                "observed_from": (now - timedelta(hours=hours)).isoformat(),
+                "observed_to": (now + timedelta(hours=24)).isoformat(),
+                "limit": 1000,
+            },
+        )
+        current_by_kind = {}
+        for measurement in city_measurements:
+            observed_at = pd.to_datetime(measurement["observed_at"], utc=True)
+            if measurement["kind"] == "temperature":
+                comparison_rows.append(
+                    {
+                        "Ville": city_label,
+                        "Date": observed_at,
+                        "Température (°C)": float(measurement["value"]),
+                    }
+                )
+            if observed_at <= pd.Timestamp(now) and measurement["kind"] not in current_by_kind:
+                current_by_kind[measurement["kind"]] = float(measurement["value"])
+
+        current_weather_rows.append(
+            {
+                "Ville": city_label,
+                "Température (°C)": current_by_kind.get("temperature"),
+                "Humidité (%)": current_by_kind.get("relative_humidity"),
+                "Vent (km/h)": current_by_kind.get("wind_speed"),
+                "Nuages (%)": current_by_kind.get("cloud_cover"),
+            }
+        )
+
+    if comparison_rows:
+        comparison_frame = pd.DataFrame(comparison_rows).sort_values("Date")
+        comparison_figure = go.Figure()
+        for city_label in compared_weather_labels:
+            city_frame = comparison_frame[comparison_frame["Ville"] == city_label]
+            comparison_figure.add_trace(
+                go.Scatter(
+                    x=city_frame["Date"],
+                    y=city_frame["Température (°C)"],
+                    name=city_label,
+                )
+            )
+        comparison_figure.add_vline(x=now, line_dash="dash", line_color="gray")
+        comparison_figure.update_layout(
+            yaxis={"title": "Température (°C)"},
+            legend={"orientation": "h"},
+            hovermode="x unified",
+        )
+        st.plotly_chart(comparison_figure, use_container_width=True)
+        st.caption("À gauche de la ligne : historique. À droite : prévisions Open-Meteo.")
+        st.dataframe(
+            pd.DataFrame(current_weather_rows).set_index("Ville"),
+            use_container_width=True,
+        )
+    else:
+        st.info("Sélectionnez au moins une ville pour afficher la comparaison.")
 
     st.subheader("Dernière production par filière")
     production = []
