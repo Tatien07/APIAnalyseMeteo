@@ -7,6 +7,7 @@ moteur PostgreSQL asynchrone pendant l'exécution et les tests d'intégration.
 
 Documentation complémentaire :
 
+- [guide complet du projet](docs/GUIDE_COMPLET.md) ;
 - [architecture](docs/ARCHITECTURE.md) ;
 - [exploitation, validation et retour arrière](docs/OPERATIONS.md).
 - [stockage distant de l'état Terraform](infrastructure/state-bootstrap/README.md).
