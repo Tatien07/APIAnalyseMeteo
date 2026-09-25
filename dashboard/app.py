@@ -95,6 +95,23 @@ try:
         f"{float(carbon['value']):.0f} gCO₂/kWh" if carbon else "Indisponible",
     )
 
+    energy_summary = api_get("/analytics/energy-summary", {"hours": hours})
+    st.subheader(f"Synthèse énergétique sur {hours} heures")
+    summary_columns = st.columns(4)
+    summary_columns[0].metric(
+        "Consommation moyenne",
+        f"{energy_summary['average_consumption_mw']:,.0f} MW"
+        if energy_summary["average_consumption_mw"] is not None
+        else "Indisponible",
+    )
+    for column, label, key in [
+        (summary_columns[1], "Part renouvelable", "renewable_share_percent"),
+        (summary_columns[2], "Part bas-carbone", "low_carbon_share_percent"),
+        (summary_columns[3], "Part fossile", "fossil_share_percent"),
+    ]:
+        value = energy_summary[key]
+        column.metric(label, f"{value:.1f} %" if value is not None else "Indisponible")
+
     analysis = api_get(
         "/analytics/weather-energy",
         {"hours": hours, "weather_location": weather_location},

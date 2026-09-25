@@ -26,6 +26,7 @@ Documentation complémentaire :
 - sélection de la ville météo utilisée dans les graphiques et la corrélation ;
 - comparaison simultanée des villes avec historique, prévisions et synthèse météo ;
 - cache Streamlit de cinq minutes, actualisation manuelle et export CSV de la comparaison ;
+- synthèse énergétique moyenne avec parts renouvelable, bas-carbone et fossile ;
 - tests unitaires sans appel réseau réel.
 - contrôle de fraîcheur des collectes météo et énergie.
 

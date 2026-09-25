@@ -107,6 +107,13 @@ async def test_analytics_reads_hourly_values_from_postgres(
     assert lyon_response.status_code == 200
     assert lyon_response.json()["points_count"] == 0
 
+    summary_response = await api_client.get(
+        "/api/v1/analytics/energy-summary",
+        params={"hours": 6},
+    )
+    assert summary_response.status_code == 200
+    assert summary_response.json()["average_consumption_mw"] == 42500.0
+
 
 async def test_data_freshness_reports_recent_collections(
     api_client: httpx.AsyncClient,

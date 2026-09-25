@@ -120,3 +120,22 @@ class MeasurementRepository:
         )
         result = await self.session.execute(statement)
         return [(row.hour, row.temperature_c, row.consumption_mw) for row in result]
+
+    async def average_values_by_kind(
+        self,
+        *,
+        hours: int,
+        location: str,
+    ) -> dict[MeasurementKind, Decimal]:
+        now = datetime.now(UTC)
+        statement = (
+            select(Measurement.kind, func.avg(Measurement.value))
+            .where(
+                Measurement.location == location,
+                Measurement.observed_at >= now - timedelta(hours=hours),
+                Measurement.observed_at <= now,
+            )
+            .group_by(Measurement.kind)
+        )
+        result = await self.session.execute(statement)
+        return {kind: average for kind, average in result if average is not None}
