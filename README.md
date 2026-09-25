@@ -2,6 +2,15 @@
 
 API pédagogique d'agrégation de données météorologiques et énergétiques.
 
+## Application déployée
+
+- [Dashboard public](https://energy-weather-dashboard-t3kzxm56eq-ew.a.run.app/) : interface
+  Streamlit de consultation et d'analyse des données ;
+- [API publique](https://energy-weather-api-t3kzxm56eq-ew.a.run.app/) : adresse du service FastAPI
+  déployé sur Cloud Run (la racine `/` ne correspond actuellement à aucune route) ;
+- [Documentation Swagger](https://energy-weather-api-t3kzxm56eq-ew.a.run.app/docs) : documentation
+  interactive permettant de découvrir et de tester les routes de l'API.
+
 SQLAlchemy est installé avec son extra `asyncio`, qui fournit notamment `greenlet`, nécessaire au
 moteur PostgreSQL asynchrone pendant l'exécution et les tests d'intégration.
 
